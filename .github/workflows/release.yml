@@ -10,36 +10,8 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  build-matrix:
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-20.04
-            platform: linux
-            arch: x64
-            target: x86_64-unknown-linux-gnu
-          - os: ubuntu-20.04
-            platform: linux
-            arch: arm64
-            target: aarch64-unknown-linux-gnu
-          - os: windows-2019
-            platform: win32
-            arch: x64
-            target: x86_64-pc-windows-msvc
-          - os: windows-2019
-            platform: win32
-            arch: arm64
-            target: aarch64-pc-windows-msvc
-          - os: macos-latest
-            platform: darwin
-            arch: x64
-            target: x86_64-apple-darwin
-          - os: macos-latest
-            platform: darwin
-            arch: arm64
-            target: aarch64-apple-darwin
-
-    runs-on: ${{ matrix.os }}
+  linux-x64:
+    runs-on: ubuntu-20.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -56,17 +28,7 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
-
-      - name: Install cross-compilation dependencies (Linux ARM64)
-        if: matrix.platform == 'linux' && matrix.arch == 'arm64'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu
-
-      - name: Install tree-sitter CLI
-        run: |
-          npm install -g tree-sitter-cli
+          targets: x86_64-unknown-linux-gnu
 
       - name: Build Tree-sitter BSV parser
         run: |
@@ -78,18 +40,10 @@ jobs:
       - name: Build Rust language server
         run: |
           cd bsv-language-server
-          cargo build --release --target ${{ matrix.target }}
-          
-          # Create bin directory for packaging
+          cargo build --release --target x86_64-unknown-linux-gnu
           mkdir -p bin
-          
-          # Copy binary with appropriate naming
-          if [ "${{ matrix.platform }}" = "win32" ]; then
-            cp target/${{ matrix.target }}/release/bsv-language-server.exe bin/
-          else
-            cp target/${{ matrix.target }}/release/bsv-language-server bin/
-            chmod +x bin/bsv-language-server
-          fi
+          cp target/x86_64-unknown-linux-gnu/release/bsv-language-server bin/
+          chmod +x bin/bsv-language-server
 
       - name: Install VS Code Extension dependencies
         run: |
@@ -105,33 +59,341 @@ jobs:
         run: |
           npm install -g @vscode/vsce
 
-      - name: Verify binary existence
-        run: |
-          cd bsv-language-server
-          if [ "${{ matrix.platform }}" = "win32" ]; then
-            ls -la bin/bsv-language-server.exe
-          else
-            ls -la bin/bsv-language-server
-          fi
-
       - name: Package VSIX
         run: |
           cd bsv-language-server
-          # Ensure bin directory is included in package
-          echo "Including binaries in package..."
-          ls -la bin/
-          vsce package --target ${{ matrix.platform }}-${{ matrix.arch }} --out ../bsv-language-server-${{ matrix.platform }}-${{ matrix.arch }}.vsix
+          vsce package --target linux-x64 --out ../bsv-language-server-linux-x64.vsix
 
       - name: Upload VSIX artifact
         uses: actions/upload-artifact@v4
         with:
-          name: bsv-language-server-${{ matrix.platform }}-${{ matrix.arch }}
-          path: bsv-language-server-${{ matrix.platform }}-${{ matrix.arch }}.vsix
+          name: bsv-language-server-linux-x64
+          path: bsv-language-server-linux-x64.vsix
+          retention-days: 5
+
+  linux-arm64:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'bsv-language-server/package-lock.json'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-unknown-linux-gnu
+
+      - name: Install cross-compilation dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+
+      - name: Build Tree-sitter BSV parser
+        run: |
+          cd tree-sitter-bsv
+          npm install
+          npx tree-sitter generate
+          npx tree-sitter test
+
+      - name: Build Rust language server
+        run: |
+          cd bsv-language-server
+          cargo build --release --target aarch64-unknown-linux-gnu
+          mkdir -p bin
+          cp target/aarch64-unknown-linux-gnu/release/bsv-language-server bin/
+          chmod +x bin/bsv-language-server
+
+      - name: Install VS Code Extension dependencies
+        run: |
+          cd bsv-language-server
+          npm ci
+
+      - name: Compile TypeScript client
+        run: |
+          cd bsv-language-server
+          npm run compile
+
+      - name: Install vsce
+        run: |
+          npm install -g @vscode/vsce
+
+      - name: Package VSIX
+        run: |
+          cd bsv-language-server
+          vsce package --target linux-arm64 --out ../bsv-language-server-linux-arm64.vsix
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bsv-language-server-linux-arm64
+          path: bsv-language-server-linux-arm64.vsix
+          retention-days: 5
+
+  windows-x64:
+    runs-on: windows-2019
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'bsv-language-server/package-lock.json'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Build Tree-sitter BSV parser
+        shell: bash
+        run: |
+          cd tree-sitter-bsv
+          npm install
+          npx tree-sitter generate
+          npx tree-sitter test
+
+      - name: Build Rust language server
+        shell: bash
+        run: |
+          cd bsv-language-server
+          cargo build --release --target x86_64-pc-windows-msvc
+          mkdir -p bin
+          cp target/x86_64-pc-windows-msvc/release/bsv-language-server.exe bin/
+
+      - name: Install VS Code Extension dependencies
+        shell: bash
+        run: |
+          cd bsv-language-server
+          npm ci
+
+      - name: Compile TypeScript client
+        shell: bash
+        run: |
+          cd bsv-language-server
+          npm run compile
+
+      - name: Install vsce
+        shell: bash
+        run: |
+          npm install -g @vscode/vsce
+
+      - name: Package VSIX
+        shell: bash
+        run: |
+          cd bsv-language-server
+          vsce package --target win32-x64 --out ../bsv-language-server-win32-x64.vsix
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bsv-language-server-win32-x64
+          path: bsv-language-server-win32-x64.vsix
+          retention-days: 5
+
+  windows-arm64:
+    runs-on: windows-2019
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'bsv-language-server/package-lock.json'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-pc-windows-msvc
+
+      - name: Build Tree-sitter BSV parser
+        shell: bash
+        run: |
+          cd tree-sitter-bsv
+          npm install
+          npx tree-sitter generate
+          npx tree-sitter test
+
+      - name: Build Rust language server
+        shell: bash
+        run: |
+          cd bsv-language-server
+          cargo build --release --target aarch64-pc-windows-msvc
+          mkdir -p bin
+          cp target/aarch64-pc-windows-msvc/release/bsv-language-server.exe bin/
+
+      - name: Install VS Code Extension dependencies
+        shell: bash
+        run: |
+          cd bsv-language-server
+          npm ci
+
+      - name: Compile TypeScript client
+        shell: bash
+        run: |
+          cd bsv-language-server
+          npm run compile
+
+      - name: Install vsce
+        shell: bash
+        run: |
+          npm install -g @vscode/vsce
+
+      - name: Package VSIX
+        shell: bash
+        run: |
+          cd bsv-language-server
+          vsce package --target win32-arm64 --out ../bsv-language-server-win32-arm64.vsix
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bsv-language-server-win32-arm64
+          path: bsv-language-server-win32-arm64.vsix
+          retention-days: 5
+
+  darwin-x64:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'bsv-language-server/package-lock.json'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-apple-darwin
+
+      - name: Build Tree-sitter BSV parser
+        run: |
+          cd tree-sitter-bsv
+          npm install
+          npx tree-sitter generate
+          npx tree-sitter test
+
+      - name: Build Rust language server
+        run: |
+          cd bsv-language-server
+          cargo build --release --target x86_64-apple-darwin
+          mkdir -p bin
+          cp target/x86_64-apple-darwin/release/bsv-language-server bin/
+          chmod +x bin/bsv-language-server
+
+      - name: Install VS Code Extension dependencies
+        run: |
+          cd bsv-language-server
+          npm ci
+
+      - name: Compile TypeScript client
+        run: |
+          cd bsv-language-server
+          npm run compile
+
+      - name: Install vsce
+        run: |
+          npm install -g @vscode/vsce
+
+      - name: Package VSIX
+        run: |
+          cd bsv-language-server
+          vsce package --target darwin-x64 --out ../bsv-language-server-darwin-x64.vsix
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bsv-language-server-darwin-x64
+          path: bsv-language-server-darwin-x64.vsix
+          retention-days: 5
+
+  darwin-arm64:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'bsv-language-server/package-lock.json'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Build Tree-sitter BSV parser
+        run: |
+          cd tree-sitter-bsv
+          npm install
+          npx tree-sitter generate
+          npx tree-sitter test
+
+      - name: Build Rust language server
+        run: |
+          cd bsv-language-server
+          cargo build --release --target aarch64-apple-darwin
+          mkdir -p bin
+          cp target/aarch64-apple-darwin/release/bsv-language-server bin/
+          chmod +x bin/bsv-language-server
+
+      - name: Install VS Code Extension dependencies
+        run: |
+          cd bsv-language-server
+          npm ci
+
+      - name: Compile TypeScript client
+        run: |
+          cd bsv-language-server
+          npm run compile
+
+      - name: Install vsce
+        run: |
+          npm install -g @vscode/vsce
+
+      - name: Package VSIX
+        run: |
+          cd bsv-language-server
+          vsce package --target darwin-arm64 --out ../bsv-language-server-darwin-arm64.vsix
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bsv-language-server-darwin-arm64
+          path: bsv-language-server-darwin-arm64.vsix
           retention-days: 5
 
   create-release:
     runs-on: ubuntu-20.04
-    needs: build-matrix
+    needs: [linux-x64, linux-arm64, windows-x64, windows-arm64, darwin-x64, darwin-arm64]
     permissions:
       contents: write
     
