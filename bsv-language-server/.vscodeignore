@@ -1,28 +1,25 @@
-# Build output
-client/out/**
-!client/out/**/*.js
-!client/out/**/*.js.map
-
-# Node modules
-node_modules/**
-
 # Source files
 src/**
 client/src/**
 **/*.ts
 **/*.tsx
 
-# Tests
-**/__tests__/**
-**/*.test.*
-**/*.spec.*
+# Rust build artifacts
+target/**
+Cargo.toml
+Cargo.lock
+build.rs
+.cargo/**
 
-# Configuration files
+# Node modules
+node_modules/**
+
+# Tests
+test_fixtures/**
+scripts/**
+
+# Config files
 **/.vscode/**
-*.md
-*.txt
 .gitignore
 .editorconfig
-
-# Include server binaries
-server/**
+*.md
