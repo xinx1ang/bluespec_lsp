@@ -61,6 +61,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gcc-aarch64-linux-gnu
 
+      - name: Install tree-sitter CLI
+        run: |
+          npm install -g tree-sitter-cli
+
       - name: Build Tree-sitter BSV parser
         run: |
           cd tree-sitter-bsv
@@ -98,9 +102,21 @@ jobs:
         run: |
           npm install -g @vscode/vsce
 
+      - name: Verify binary existence
+        run: |
+          cd bsv-language-server
+          if [ "${{ matrix.platform }}" = "win32" ]; then
+            ls -la bin/bsv-language-server.exe
+          else
+            ls -la bin/bsv-language-server
+          fi
+
       - name: Package VSIX
         run: |
           cd bsv-language-server
+          # Ensure bin directory is included in package
+          echo "Including binaries in package..."
+          ls -la bin/
           vsce package --target ${{ matrix.platform }}-${{ matrix.arch }} --out ../bsv-language-server-${{ matrix.platform }}-${{ matrix.arch }}.vsix
 
       - name: Upload VSIX artifact
