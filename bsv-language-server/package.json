@@ -4,6 +4,10 @@
   "description": "Bluespec SystemVerilog Language Server for VSCode",
   "version": "0.1.0",
   "publisher": "jiakai-xu",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xinx1ang/bluespec_lsp.git"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },

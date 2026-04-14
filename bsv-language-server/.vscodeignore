@@ -1,0 +1,31 @@
+# Build output
+client/out/**
+!client/out/**/*.js
+!client/out/**/*.js.map
+
+# Node modules
+node_modules/**
+!node_modules/vscode-languageclient/**
+!node_modules/vscode-languageserver-protocol/**
+
+# Source files
+src/**
+client/src/**
+**/*.ts
+**/*.tsx
+
+# Tests
+**/__tests__/**
+**/*.test.*
+**/*.spec.*
+
+# Configuration files
+**/.vscode/**
+*.md
+*.txt
+.gitignore
+.editorconfig
+
+# Ignore everything in bin except the binaries we want to include
+bin/*
+!bin/bsv-language-server*

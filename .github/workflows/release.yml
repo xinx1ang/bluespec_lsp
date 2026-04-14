@@ -30,11 +30,11 @@ jobs:
             platform: win32
             arch: arm64
             target: aarch64-pc-windows-msvc
-          - os: macos-13
+          - os: macos-latest
             platform: darwin
             arch: x64
             target: x86_64-apple-darwin
-          - os: macos-14
+          - os: macos-latest
             platform: darwin
             arch: arm64
             target: aarch64-apple-darwin
