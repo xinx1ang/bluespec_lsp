@@ -125,16 +125,26 @@ jobs:
         with:
           path: artifacts
 
+      - name: List downloaded artifacts
+        run: |
+          echo "Downloaded artifacts:"
+          find artifacts -type f -name "*.vsix" | sort
+
       - name: Create GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref_name || github.event.inputs.version }}
-          release_name: Release ${{ github.ref_name || github.event.inputs.version }}
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
           draft: false
           prerelease: false
           generate_release_notes: true
           files: |
-            artifacts/*/bsv-language-server-*.vsix
+            artifacts/bsv-language-server-linux-x64/bsv-language-server-linux-x64.vsix
+            artifacts/bsv-language-server-linux-arm64/bsv-language-server-linux-arm64.vsix
+            artifacts/bsv-language-server-win32-x64/bsv-language-server-win32-x64.vsix
+            artifacts/bsv-language-server-win32-arm64/bsv-language-server-win32-arm64.vsix
+            artifacts/bsv-language-server-darwin-x64/bsv-language-server-darwin-x64.vsix
+            artifacts/bsv-language-server-darwin-arm64/bsv-language-server-darwin-arm64.vsix
