@@ -3,7 +3,11 @@
   "displayName": "BSV Language Server",
   "description": "Bluespec SystemVerilog Language Server for VSCode",
   "version": "0.1.0",
-  "publisher": "Jiakai Xu",
+  "publisher": "Jiakai-Xu",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/open-rdma/bluespec_lsp.git"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },

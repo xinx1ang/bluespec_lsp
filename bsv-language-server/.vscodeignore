@@ -1,0 +1,28 @@
+# Build output
+client/out/**
+!client/out/**/*.js
+!client/out/**/*.js.map
+
+# Node modules
+node_modules/**
+
+# Source files
+src/**
+client/src/**
+**/*.ts
+**/*.tsx
+
+# Tests
+**/__tests__/**
+**/*.test.*
+**/*.spec.*
+
+# Configuration files
+**/.vscode/**
+*.md
+*.txt
+.gitignore
+.editorconfig
+
+# Include server binaries
+server/**

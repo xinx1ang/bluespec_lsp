@@ -1,8 +1,63 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as fs from 'fs';
+import * as os from 'os';
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient/node';
 
 let client: LanguageClient;
+
+// 获取当前平台对应的二进制文件路径
+function getPlatformBinaryPath(context: vscode.ExtensionContext): string {
+    const extensionPath = context.extensionPath;
+    
+    // 根据平台和架构确定文件名和目录结构
+    const platform = os.platform();
+    const arch = os.arch();
+    
+    let platformName: string;
+    let binaryName: string;
+    
+    switch (platform) {
+        case 'win32':
+            platformName = 'win32';
+            binaryName = 'bsv-language-server.exe';
+            break;
+        case 'darwin':
+            platformName = 'darwin';
+            binaryName = 'bsv-language-server';
+            break;
+        default: // linux, freebsd, etc.
+            platformName = 'linux';
+            binaryName = 'bsv-language-server';
+            break;
+    }
+    
+    // 根据架构确定目录
+    let archName: string;
+    if (arch === 'arm64' || arch === 'aarch64') {
+        archName = 'arm64';
+    } else if (arch === 'x64' || arch === 'x86_64') {
+        archName = 'x64';
+    } else {
+        archName = arch; // fallback
+    }
+    
+    // 优先尝试 platform-arch 目录结构
+    const platformArchPath = path.join(extensionPath, 'server', `${platformName}-${archName}`, binaryName);
+    
+    // 兼容性：也尝试根目录
+    const rootPath = path.join(extensionPath, 'server', binaryName);
+    
+    // 检查文件是否存在
+    if (fs.existsSync(platformArchPath)) {
+        return platformArchPath;
+    } else if (fs.existsSync(rootPath)) {
+        return rootPath;
+    }
+    
+    // 如果都没有找到，返回空字符串
+    return '';
+}
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('BSV Language Server extension is now active!');
@@ -20,28 +75,45 @@ export function activate(context: vscode.ExtensionContext) {
     
     // 确定服务器路径
     let serverModule: string;
-    const fs = require('fs');
-    const defaultPaths = [
-        context.asAbsolutePath(path.join('..', 'bsv-language-server', 'target', 'release', 'bsv-language-server')),
-        context.asAbsolutePath(path.join('..', 'target', 'release', 'bsv-language-server')),
-    ];
-
+    
     if (serverPath && serverPath.trim() !== '') {
         // 使用用户指定的路径
         serverModule = serverPath;
+        console.log(`Using user-specified server path: ${serverModule}`);
     } else {
-        // 使用默认路径列表，优先本仓库实际构建输出
-        const foundPath = defaultPaths.find((p: string) => fs.existsSync(p));
-        serverModule = foundPath || defaultPaths[0];
+        // 尝试使用扩展包内的二进制文件
+        serverModule = getPlatformBinaryPath(context);
+        
+        if (serverModule && fs.existsSync(serverModule)) {
+            console.log(`Using bundled server binary: ${serverModule}`);
+            
+            // 确保二进制文件可执行（非Windows平台）
+            if (os.platform() !== 'win32') {
+                try {
+                    fs.chmodSync(serverModule, 0o755);
+                    console.log(`Set executable permissions for ${serverModule}`);
+                } catch (err) {
+                    console.warn(`Failed to set executable permissions: ${err}`);
+                }
+            }
+        } else {
+            // 回退到默认路径（开发环境）
+            const defaultPaths = [
+                context.asAbsolutePath(path.join('..', 'bsv-language-server', 'target', 'release', 'bsv-language-server')),
+                context.asAbsolutePath(path.join('..', 'target', 'release', 'bsv-language-server')),
+            ];
+            
+            const foundPath = defaultPaths.find((p: string) => fs.existsSync(p));
+            serverModule = foundPath || 'bsv-language-server';
+            
+            if (!fs.existsSync(serverModule)) {
+                console.warn(`BSV language server executable not found at ${serverModule}, falling back to PATH lookup.`);
+                serverModule = 'bsv-language-server';
+            }
+        }
     }
     
-    console.log(`Using server module: ${serverModule}`);
-    
-    // 如果服务器模块不存在，尝试从系统PATH查找
-    if (!fs.existsSync(serverModule)) {
-        console.warn(`BSV language server executable not found at ${serverModule}, falling back to PATH lookup.`);
-        serverModule = 'bsv-language-server';
-    }
+    console.log(`Final server module: ${serverModule}`);
     
     // 服务器选项
     const serverOptions: ServerOptions = {
