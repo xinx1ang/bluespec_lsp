@@ -94,6 +94,10 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+          # 设置正确的链接器
+          rustup target add aarch64-unknown-linux-gnu
+          echo '[target.aarch64-unknown-linux-gnu]' > ~/.cargo/config
+          echo 'linker = "aarch64-linux-gnu-gcc"' >> ~/.cargo/config
 
       - name: Build Tree-sitter BSV parser
         run: |
@@ -105,8 +109,9 @@ jobs:
       - name: Build Rust language server
         run: |
           cd bsv-language-server
+          # 设置正确的环境变量用于交叉编译
+          export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
           cargo build --release --target aarch64-unknown-linux-gnu
-          
           # 创建server目录并复制二进制文件
           mkdir -p server/linux-arm64
           cp target/aarch64-unknown-linux-gnu/release/bsv-language-server server/linux-arm64/
