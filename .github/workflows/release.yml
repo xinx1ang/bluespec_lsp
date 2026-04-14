@@ -30,7 +30,7 @@ jobs:
       - name: Build Tree-sitter BSV parser
         run: |
           cd tree-sitter-bsv
-          npm ci
+          npm install
           npx tree-sitter generate
           npx tree-sitter test
 
@@ -47,7 +47,7 @@ jobs:
       - name: Install VS Code Extension dependencies
         run: |
           cd bsv-language-server
-          npm ci
+          npm install
 
       - name: Compile TypeScript client
         run: |
@@ -98,7 +98,7 @@ jobs:
       - name: Build Tree-sitter BSV parser
         run: |
           cd tree-sitter-bsv
-          npm ci
+          npm install
           npx tree-sitter generate
           npx tree-sitter test
 
@@ -115,7 +115,7 @@ jobs:
       - name: Install VS Code Extension dependencies
         run: |
           cd bsv-language-server
-          npm ci
+          npm install
 
       - name: Compile TypeScript client
         run: |
@@ -162,7 +162,7 @@ jobs:
         shell: bash
         run: |
           cd tree-sitter-bsv
-          npm ci
+          npm install
           npx tree-sitter generate
           npx tree-sitter test
 
@@ -180,7 +180,7 @@ jobs:
         shell: bash
         run: |
           cd bsv-language-server
-          npm ci
+          npm install
 
       - name: Compile TypeScript client
         shell: bash
@@ -230,7 +230,7 @@ jobs:
         shell: bash
         run: |
           cd tree-sitter-bsv
-          npm ci
+          npm install
           npx tree-sitter generate
           npx tree-sitter test
 
@@ -248,7 +248,7 @@ jobs:
         shell: bash
         run: |
           cd bsv-language-server
-          npm ci
+          npm install
 
       - name: Compile TypeScript client
         shell: bash
@@ -297,7 +297,7 @@ jobs:
       - name: Build Tree-sitter BSV parser
         run: |
           cd tree-sitter-bsv
-          npm ci
+          npm install
           npx tree-sitter generate
           npx tree-sitter test
 
@@ -314,7 +314,7 @@ jobs:
       - name: Install VS Code Extension dependencies
         run: |
           cd bsv-language-server
-          npm ci
+          npm install
 
       - name: Compile TypeScript client
         run: |
@@ -360,7 +360,7 @@ jobs:
       - name: Build Tree-sitter BSV parser
         run: |
           cd tree-sitter-bsv
-          npm ci
+          npm install
           npx tree-sitter generate
           npx tree-sitter test
 
@@ -377,7 +377,7 @@ jobs:
       - name: Install VS Code Extension dependencies
         run: |
           cd bsv-language-server
-          npm ci
+          npm install
 
       - name: Compile TypeScript client
         run: |
