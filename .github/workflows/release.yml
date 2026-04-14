@@ -40,17 +40,21 @@ jobs:
                     matrix.platform == 'darwin-x64' && 'x86_64-apple-darwin' ||
                     'aarch64-apple-darwin' }}
 
-      - name: Install cross-compilation dependencies (Linux ARM64)
-        if: matrix.platform == 'linux-arm64'
+      - name: Install cross-compilation dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-
-      - name: Install cross-compilation dependencies (Windows targets)
-        if: contains(matrix.platform, 'win32')
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y mingw-w64
+          if [ "${{ matrix.platform }}" = "linux-arm64" ]; then
+            sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+          fi
+          if [[ "${{ matrix.platform }}" == win32-* ]]; then
+            sudo apt-get install -y mingw-w64
+          fi
+          if [[ "${{ matrix.platform }}" == darwin-* ]]; then
+            # 安装macOS交叉编译工具链
+            sudo apt-get install -y clang lld
+            # 安装macOS SDK（如果需要）
+            # 注意：macOS交叉编译可能需要额外的配置
+          fi
 
       - name: Build Tree-sitter BSV parser
         run: |
@@ -85,17 +89,22 @@ jobs:
               ;;
           esac
           
+          echo "Building for target: $target"
           cargo build --release --target $target
           
-          # Create bin directory for packaging
-          mkdir -p bin
+          # Create server directory structure for packaging
+          mkdir -p server
           
-          # Copy binary with appropriate naming
+          # Copy binary to server directory with platform-specific naming
           if [[ "${{ matrix.platform }}" == win32-* ]]; then
-            cp target/$target/release/bsv-language-server.exe bin/
+            mkdir -p server/${{ matrix.platform }}
+            cp target/$target/release/bsv-language-server.exe server/${{ matrix.platform }}/bsv-language-server.exe
+            echo "Copied binary to server/${{ matrix.platform }}/bsv-language-server.exe"
           else
-            cp target/$target/release/bsv-language-server bin/
-            chmod +x bin/bsv-language-server
+            mkdir -p server/${{ matrix.platform }}
+            cp target/$target/release/bsv-language-server server/${{ matrix.platform }}/bsv-language-server
+            chmod +x server/${{ matrix.platform }}/bsv-language-server
+            echo "Copied binary to server/${{ matrix.platform }}/bsv-language-server"
           fi
 
       - name: Install VS Code Extension dependencies
@@ -112,9 +121,20 @@ jobs:
         run: |
           npm install -g @vscode/vsce
 
+      - name: Verify server binaries
+        run: |
+          cd bsv-language-server
+          echo "Server directory structure:"
+          find server -type f -name "*" | sort
+          if [ -d "server/${{ matrix.platform }}" ]; then
+            echo "Binary for ${{ matrix.platform }}:"
+            ls -la server/${{ matrix.platform }}/
+          fi
+
       - name: Package VSIX
         run: |
           cd bsv-language-server
+          echo "Packaging VSIX for ${{ matrix.platform }}"
           vsce package --target ${{ matrix.platform }} --out ../bsv-language-server-${{ matrix.platform }}.vsix
 
       - name: Upload VSIX artifact

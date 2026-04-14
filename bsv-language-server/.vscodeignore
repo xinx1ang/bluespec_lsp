@@ -26,6 +26,5 @@ client/src/**
 .gitignore
 .editorconfig
 
-# Ignore everything in bin except the binaries we want to include
-bin/*
-!bin/bsv-language-server*
+# Include server binaries
+server/**
